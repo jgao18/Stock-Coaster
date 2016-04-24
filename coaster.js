@@ -30,7 +30,7 @@ var baseMaterial = new THREE.MeshPhongMaterial({color: 0x0051c1, wireframe: fals
 var baseMesh = new THREE.Mesh(baseGeometry, baseMaterial);
 scene.add(baseMesh);
 
-// Invisible tube
+// Invisible tube to ride along
 var tubeGeometry = new THREE.TubeGeometry(trackSpline, 100, 1, 1, closed=false);
 var tubeMaterial = new THREE.MeshPhongMaterial({color: 0x000000});
 var tubeMesh = new THREE.Mesh(tubeGeometry, tubeMaterial);
@@ -63,23 +63,35 @@ var pipeCounter = 10;
 var baseVertices = baseGeometry.vertices;
 var pipeVertices = pipeGeometry.vertices;
 
-while (baseCounter < baseVertices.length && pipeCounter < pipeVertices.length ) {
-  var baseVertex = baseVertices[baseCounter];
-  var pipeVertex = pipeVertices[pipeCounter];
-  
-  distance = baseVertex.distanceTo(pipeVertex);
-  console.log(distance);
-  
-  var legGeometry = new THREE.CylinderGeometry(2,2,1000,32);
+console.log(baseVertices.length);
+console.log(pipeVertices.length);
 
-  var legMaterial = new THREE.MeshPhongMaterial({color: 0x0051c1});
-  var legMesh = new THREE.Mesh(legGeometry, legMaterial);
+//while (baseCounter < baseVertices.length) {
+  console.log(baseCounter);
+  console.log(pipeCounter);
+  
+  baseVertex = baseVertices[baseCounter];
+  pipeVertex = pipeVertices[pipeCounter];
+  
+  legHeight = pipeVertex.y - baseVertex.y
+  console.log(legHeight);
+    
+  legGeometry = new THREE.CylinderGeometry(2,2,legHeight,32);
+  legGeometry.x = baseVertex.x;
+  legGeometry.y = baseVertex.y;
+  legGeometry.z = baseGeometry.z;
+  legGeometry.translate(50,50,0);
+  //legGeometry.translate(baseVertex.x, baseVertex.y, baseVertex.z);
+  legGeometry.lookAt(pipeVertex);
+
+  legMaterial = new THREE.MeshPhongMaterial({color: 0x0051c1});
+  legMesh = new THREE.Mesh(legGeometry, legMaterial);
   
   scene.add(legMesh);
   
   baseCounter += 10;
   pipeCounter += 10;
-}
+//}
 
 // Company logo
 var logoLoader = new THREE.TextureLoader();
@@ -202,8 +214,8 @@ function render() {
     splineCamera.rotation.setFromRotationMatrix( splineCamera.matrix, splineCamera.rotation.order );
 
     //cameraParent.rotation.y += ( 0 - cameraParent.rotation.y ) * 0.05;
-    renderer.render(scene, splineCamera);   
-    //renderer.render(scene, camera);    
+    //renderer.render(scene, splineCamera);   
+    renderer.render(scene, camera);    
 };
 
 scene.add(new THREE.AxisHelper(200));
