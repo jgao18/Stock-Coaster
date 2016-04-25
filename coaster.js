@@ -21,7 +21,7 @@ for (i = 0; i < trackPoints.length; i++) {
 }
 var baseSpline =  new THREE.CatmullRomCurve3(basePoints);
 var baseExtrudeSettings = { extrudePath: baseSpline, steps: 200, bevelEnabled : false};
-  
+
 var baseGeometry = new THREE.ExtrudeGeometry(baseShape, baseExtrudeSettings);
 baseGeometry.translate(0,-120,-10);
 
@@ -62,36 +62,60 @@ var baseCounter = 10;
 var pipeCounter = 10;
 var baseVertices = baseGeometry.vertices;
 var pipeVertices = pipeGeometry.vertices;
+var pipeVertices2 = pipeGeometry2.vertices;
 
 console.log(baseVertices.length);
 console.log(pipeVertices.length);
 
-//while (baseCounter < baseVertices.length) {
-  console.log(baseCounter);
-  console.log(pipeCounter);
-  
+console.log(baseVertices[0]);
+console.log(pipeVertices[0]);
+
+while (baseCounter < baseVertices.length && pipeCounter < pipeVertices.length) {
+  //console.log(baseCounter);
+  //console.log(pipeCounter);
+
   baseVertex = baseVertices[baseCounter];
   pipeVertex = pipeVertices[pipeCounter];
-  
+  pipeVertex2 = pipeVertices2[pipeCounter];
+
   legHeight = pipeVertex.y - baseVertex.y
-  console.log(legHeight);
-    
+  //console.log(legHeight);
+
   legGeometry = new THREE.CylinderGeometry(2,2,legHeight,32);
-  legGeometry.x = baseVertex.x;
-  legGeometry.y = baseVertex.y;
-  legGeometry.z = baseGeometry.z;
-  legGeometry.translate(50,50,0);
-  //legGeometry.translate(baseVertex.x, baseVertex.y, baseVertex.z);
+  legGeometry.translate(baseVertex.x,0,0);
   legGeometry.lookAt(pipeVertex);
+
+  //legGeometry.translate(baseVertex.x, baseVertex.y, baseVertex.z);
 
   legMaterial = new THREE.MeshPhongMaterial({color: 0x0051c1});
   legMesh = new THREE.Mesh(legGeometry, legMaterial);
-  
-  scene.add(legMesh);
-  
+  //legMesh.position = baseVertex;
+
+  //scene.add(legMesh);
+
+  var material = new THREE.LineBasicMaterial({
+	   color: 0xb000ff,
+     linewidth: 30
+  });
+
+  console.log(pipeVertex.x);
+  var geometry = new THREE.Geometry();
+  geometry.vertices.push(
+    baseVertex, pipeVertex
+  );
+  var geometry2 = new THREE.Geometry();
+  geometry.vertices.push(
+    baseVertex, pipeVertex2
+  );
+
+  var line = new THREE.Line( geometry, material );
+  var line2 = new THREE.Line( geometry2, material );
+  scene.add(line);
+  //  scene.add(line2)
+
   baseCounter += 10;
-  pipeCounter += 10;
-//}
+  pipeCounter += 40;
+}
 
 // Company logo
 var logoLoader = new THREE.TextureLoader();
@@ -177,7 +201,7 @@ function animate() {
 }
 
 // From: https://github.com/mrdoob/three.js/blob/master/examples/webgl_geometry_extrude_splines.html
-function render() {			
+function render() {
     // Try Animate Camera Along Spline
     var time = Date.now();
     var looptime = 20 * 1000;
@@ -206,7 +230,7 @@ function render() {
     // Camera Orientation 2 - up orientation via normal
     //if (!lookAhead)
     //lookAt.copy( pos ).add( dir );
-    
+
     splineCamera.matrix.lookAt(splineCamera.position, lookAt, new THREE.Vector3(0,1,0));
 
     //makeRotationY(270* Math.PI/180)
@@ -214,9 +238,9 @@ function render() {
     splineCamera.rotation.setFromRotationMatrix( splineCamera.matrix, splineCamera.rotation.order );
 
     //cameraParent.rotation.y += ( 0 - cameraParent.rotation.y ) * 0.05;
-    //renderer.render(scene, splineCamera);   
-    renderer.render(scene, camera);    
+    //renderer.render(scene, splineCamera);
+    renderer.render(scene, camera);
 };
 
-scene.add(new THREE.AxisHelper(200));
+//scene.add(new THREE.AxisHelper(200));
 animate();
