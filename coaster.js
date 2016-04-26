@@ -95,7 +95,7 @@ while (baseCounter < baseVertices.length && pipeCounter < pipeVertices.length) {
 
   var material = new THREE.LineBasicMaterial({
 	   color: 0xb000ff,
-     linewidth: 30
+     //linewidth: 30
   });
 
   console.log(pipeVertex.x);
@@ -134,6 +134,8 @@ logoLoader.load(
   }
 );
 
+console.log(readTextFile("SUNE_prices.txt"));
+
 // Company text
 var loader = new THREE.FontLoader();
 loader.load( 'optimer_regular.typeface.js', function ( font ) {
@@ -147,6 +149,7 @@ loader.load( 'optimer_regular.typeface.js', function ( font ) {
   textMesh2.rotateY(-1*Math.PI/2);
   scene.add(textMesh);
   scene.add(textMesh2);
+  console.log("hi");
 } );
 
 // Rendering
@@ -238,8 +241,8 @@ function render() {
     splineCamera.rotation.setFromRotationMatrix( splineCamera.matrix, splineCamera.rotation.order );
 
     //cameraParent.rotation.y += ( 0 - cameraParent.rotation.y ) * 0.05;
-    //renderer.render(scene, splineCamera);
-    renderer.render(scene, camera);
+    renderer.render(scene, splineCamera);
+    //renderer.render(scene, camera);
 };
 
 //scene.add(new THREE.AxisHelper(200));
