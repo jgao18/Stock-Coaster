@@ -6,7 +6,7 @@ var scene = new THREE.Scene();
 
 
 var trackPoints = [];
-priceList = getPriceListFromFile("/prices/prices_SUNE_weekly.txt");
+priceList = getPriceListFromFile("prices/prices_SUNE_weekly.txt");
 lastPointX = 0;
 
 // Add actual coaster points
@@ -164,7 +164,7 @@ function loadLight() {
 function loadCompanyDetails() {
   // Company logo
   var logoLoader = new THREE.TextureLoader();
-  logoLoader.load('/images/sune-logo.png', function ( logoTexture ) {
+  logoLoader.load('images/sune-logo.png', function ( logoTexture ) {
     var logoPlane = new THREE.PlaneGeometry(334, 97);
     logoPlane.translate(0,430,500);
     addToScene(logoPlane, "basic", {map: logoTexture}, -1*Math.PI/2)
@@ -173,13 +173,13 @@ function loadCompanyDetails() {
 
   // Company description
   var fontLoader = new THREE.FontLoader();
-  fontLoader.load('/three/optimer_regular.typeface.js', function ( font ) {
+  fontLoader.load('three/optimer_regular.typeface.js', function ( font ) {
     var textGeometry = new THREE.TextGeometry("SunEdison (NYSE:SUNE) is a global renewable energy development company", {font: font, size: 20, height: 5});
     var textGeometry2 = new THREE.TextGeometry("based in Maryland Heights, MO that develops and operates solar power plants.", {font: font, size: 20, height: 5});
     textGeometry.translate(-450,350,400);
     textGeometry2.translate(-450,320,400);
     addToScene(textGeometry, "basic", {color:0xff8000}, -1*Math.PI/2);
-    addToScene(textGeometry, "basic", {color:0xff8000}, -1*Math.PI/2);
+    addToScene(textGeometry2, "basic", {color:0xff8000}, -1*Math.PI/2);
   } );
 }
 
@@ -235,7 +235,7 @@ function render() {
 
     ////parentCamera.rotation.y += ( 0 - parentCamera.rotation.y ) * 0.05;
     renderer.render(scene, splineCamera);
-    //renderer.render(scene, basicCamera);
+    renderer.render(scene, basicCamera);
 };
 
 loadCamerasAndControls();
