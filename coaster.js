@@ -238,8 +238,8 @@ function render() {
     splineCamera.rotation.setFromRotationMatrix( splineCamera.matrix, splineCamera.rotation.order );
 
     //cameraParent.rotation.y += ( 0 - cameraParent.rotation.y ) * 0.05;
-    //renderer.render(scene, splineCamera);
-    renderer.render(scene, camera);
+    renderer.render(scene, splineCamera);
+    //renderer.render(scene, camera);
 };
 
 //scene.add(new THREE.AxisHelper(200));
