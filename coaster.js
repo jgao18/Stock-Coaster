@@ -1,68 +1,59 @@
-//https://github.com/mrdoob/three.js/blob/master/examples/webgl_geometry_extrude_shapes.html
-//https://d2t1xqejof9utc.cloudfront.net/screenshots/pics/c2f91cdcf62d38f93ad0ad4d424f523f/large.jpg
+var renderer;
+var basicCamera;
+var splineCamera;
+var controls;
 var scene = new THREE.Scene();
 
+
 var trackPoints = [];
-trackPoints.push(new THREE.Vector3 (-1485, 45,  45),new THREE.Vector3 (-435, 45,  45), new THREE.Vector3 (-385, 45,  45), new THREE.Vector3 (-305, 45,  45), new THREE.Vector3 (-225, 45,  45), new THREE.Vector3 ( -175,  -44.23,  45), new THREE.Vector3 ( -125,  -43.04,  45), new THREE.Vector3 ( -75,  39.659237323043598,  45), new THREE.Vector3 ( -25,  -2.652036841750376,  45), new THREE.Vector3 ( 25,  -2.727215377120153,  45), new THREE.Vector3 ( 75,  -49.844181377245455,  45), new THREE.Vector3 ( 125,  41.673702991662715,  45), new THREE.Vector3 ( 175,  49.673702991662715, 45), new THREE.Vector3(225,-28.49983697098302, 45));
+priceList = getPriceListFromFile("/prices/prices_SUNE_weekly.txt");
+lastPointX = 0;
+
+// Add actual coaster points
+for (i = 0; i < priceList.length; i++) {
+  pricePoint = new THREE.Vector3(lastPointX, priceList[i]*20, 45)
+  trackPoints.push(pricePoint);
+  lastPointX += 35;
+}
 
 // Coaster spline and settings
 var trackSpline =  new THREE.CatmullRomCurve3(trackPoints);
-var extrudeSettings = { extrudePath: trackSpline, steps: 200, bevelEnabled : false};
+var extrudeSettings = {extrudePath: trackSpline, steps: 90}; // amount, curveSegments
 
 // Track base
-var basePoints = [new THREE.Vector2(50.0,0.0), new THREE.Vector2(50.0,15.0), new THREE.Vector2(-50,15.0),new THREE.Vector2(-50.0,0.0)];
-
-var baseShape = new THREE.Shape(basePoints);
-
 basePoints = [];
 for (i = 0; i < trackPoints.length; i++) {
-  var vector = trackPoints[i];
+  vector = trackPoints[i];
   basePoints.push(new THREE.Vector3(vector.x, 0, vector.z));
 }
-var baseSpline =  new THREE.CatmullRomCurve3(basePoints);
-var baseExtrudeSettings = { extrudePath: baseSpline, steps: 200, bevelEnabled : false};
-
+baseSpline =  new THREE.CatmullRomCurve3(basePoints);
+baseExtrudeSettings = {extrudePath: baseSpline, steps: 200, bevelEnabled: false};
+baseShape = new THREE.Shape([new THREE.Vector2(50.0, 0.0), new THREE.Vector2(50.0, 15.0), new THREE.Vector2(-50, 15.0),new THREE.Vector2(-50.0, 0.0)]);
 var baseGeometry = new THREE.ExtrudeGeometry(baseShape, baseExtrudeSettings);
-baseGeometry.translate(0,-120,-10);
-
-var baseMaterial = new THREE.MeshPhongMaterial({color: 0x0051c1, wireframe: false});
-
-var baseMesh = new THREE.Mesh(baseGeometry, baseMaterial);
-scene.add(baseMesh);
+baseGeometry.translate(0, 0, -10);
+addToScene(baseGeometry, "phong", {color: 0x0051c1});
 
 // Invisible tube to ride along
-var tubeGeometry = new THREE.TubeGeometry(trackSpline, 100, 1, 1, closed=false);
-var tubeMaterial = new THREE.MeshPhongMaterial({color: 0x000000});
-var tubeMesh = new THREE.Mesh(tubeGeometry, tubeMaterial);
-scene.add(tubeMesh);
+var tubeGeometry = new THREE.TubeGeometry(trackSpline, 100, 1, 1, closed = false);
+addToScene(tubeGeometry, "phong", {color: 0x000000})
 
-// Green Pipe
-var pipeShape = new THREE.Shape();
-
+// Green and red pipes
+pipeShape = new THREE.Shape();
 pipeShape.absarc( 0, -5, 5, 0, 2 * Math.PI, false );
-var pipeGeometry = new THREE.ExtrudeGeometry( pipeShape, extrudeSettings );
-pipeGeometry.translate(0, 0,20);
+pipeGreenGeometry = new THREE.ExtrudeGeometry(pipeShape, extrudeSettings);
+pipeGreenGeometry.translate(0, 0, 20);
+addToScene(pipeGreenGeometry, "phong", {color: 0x41c100})
 
-var pipeMaterial = new THREE.MeshPhongMaterial( { color: 0x41c100, wireframe: false } );
-var pipeMesh = new THREE.Mesh( pipeGeometry, pipeMaterial );
-scene.add(pipeMesh);
+pipeRedGeometry = new THREE.ExtrudeGeometry(pipeShape, extrudeSettings);
+pipeRedGeometry.translate(0, 0, -60);
+addToScene(pipeRedGeometry, "phong", {color: 0xc10000})
 
-// Red Pipe
-var pipeShape2 = new THREE.Shape();
-
-pipeShape2.absarc( 0, -5, 5, 0, 2 * Math.PI, false );
-var pipeGeometry2 = new THREE.ExtrudeGeometry( pipeShape2, extrudeSettings );
-pipeGeometry2.translate(0,0,-40);
-
-var pipeMaterial2 = new THREE.MeshPhongMaterial( { color: 0xc10000, wireframe: false } );
-var pipeMesh2 = new THREE.Mesh( pipeGeometry2, pipeMaterial2 );
-scene.add(pipeMesh2);
-
+// Legs from base to pipes
 var baseCounter = 10;
 var pipeCounter = 10;
 var baseVertices = baseGeometry.vertices;
-var pipeVertices = pipeGeometry.vertices;
-var pipeVertices2 = pipeGeometry2.vertices;
+var pipeVertices = pipeGreenGeometry.vertices;
+var pipeVertices2 = pipeRedGeometry.vertices;
 
 console.log(baseVertices.length);
 console.log(pipeVertices.length);
@@ -117,83 +108,85 @@ while (baseCounter < baseVertices.length && pipeCounter < pipeVertices.length) {
   pipeCounter += 40;
 }
 
-// Company logo
-var logoLoader = new THREE.TextureLoader();
-logoLoader.load(
-  'sune-logo.png',
-  function ( logoTexture ) {
-    var logoMaterial = new THREE.MeshBasicMaterial( {
-      map: logoTexture
-    });
+
+function addToScene(geometry, materialType, materialSettings, meshRotationAngle) {
+  if (materialType == "phong")
+    material = new THREE.MeshPhongMaterial(materialSettings);
+  else
+    material = new THREE.MeshBasicMaterial(materialSettings);
+
+  mesh = new THREE.Mesh(geometry, material);
+  meshRotationAngle = meshRotationAngle || 0;
+  if (meshRotationAngle != 0)
+    mesh.rotateY(meshRotationAngle);
+  scene.add(mesh);
+}
+
+function loadCamerasAndControls() {
+  // Rendering
+  renderer = new THREE.WebGLRenderer({alpha:true});
+  renderer.setClearColor( 0xffffff, 0);
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  document.body.appendChild(renderer.domElement);
+
+  // Cameras
+  basicCamera = new THREE.PerspectiveCamera(120,window.innerWidth/window.innerHeight, 0.1, 1000);
+  basicCamera.position.set(2000,300,800);
+  scene.add(basicCamera)
+
+  parentCamera = new THREE.Object3D();
+  parentCamera.position.set(0,0,0);
+  //parentCamera.rotation.x = 90 * Math.PI / 180
+  //parentCamera.position.y = 100;
+  scene.add(parentCamera);
+
+  cameraEye = new THREE.Mesh( new THREE.SphereGeometry( 5 ), new THREE.MeshBasicMaterial( { color: 0xdddddd } ) );
+  parentCamera.add(cameraEye);
+
+  splineCamera = new THREE.PerspectiveCamera( 84, window.innerWidth / window.innerHeight, 0.01, 1000 );
+  //splineCamera.rotation.x = 90 * Math.PI / 180
+  //splineCamera.position.set(0,0,0);
+  parentCamera.add(splineCamera);
+
+  controls = new THREE.OrbitControls(basicCamera, renderer.domElement);
+  controls.autoRotate = false;
+  controls.enableZoom = true;
+}
+
+function loadLight() {
+  scene.add(new THREE.AmbientLight(0x222222));
+  directionalLight = new THREE.DirectionalLight(0xffffff);
+  directionalLight.position.set( 0, 1, 0 );
+  //light.position.copy( splineCamera.position );
+  scene.add(directionalLight );
+}
+
+function loadCompanyDetails() {
+  // Company logo
+  var logoLoader = new THREE.TextureLoader();
+  logoLoader.load('/images/sune-logo.png', function ( logoTexture ) {
     var logoPlane = new THREE.PlaneGeometry(334, 97);
-    logoPlane.translate(0,180,400);
-    var logoMesh = new THREE.Mesh(logoPlane,logoMaterial);
-    logoMesh.rotateY(-1* Math.PI/2);
-    scene.add(logoMesh);
+    logoPlane.translate(0,430,500);
+    addToScene(logoPlane, "basic", {map: logoTexture}, -1*Math.PI/2)
+    }
+  );
 
-  }
-);
+  // Company description
+  var fontLoader = new THREE.FontLoader();
+  fontLoader.load('/three/optimer_regular.typeface.js', function ( font ) {
+    var textGeometry = new THREE.TextGeometry("SunEdison (NYSE:SUNE) is a global renewable energy development company", {font: font, size: 20, height: 5});
+    var textGeometry2 = new THREE.TextGeometry("based in Maryland Heights, MO that develops and operates solar power plants.", {font: font, size: 20, height: 5});
+    textGeometry.translate(-450,350,400);
+    textGeometry2.translate(-450,320,400);
+    addToScene(textGeometry, "basic", {color:0xff8000}, -1*Math.PI/2);
+    addToScene(textGeometry, "basic", {color:0xff8000}, -1*Math.PI/2);
+  } );
+}
 
-console.log(readTextFile("SUNE_prices.txt"));
-
-// Company text
-var loader = new THREE.FontLoader();
-loader.load( 'optimer_regular.typeface.js', function ( font ) {
-  var textGeometry = new THREE.TextGeometry("SunEdison (NYSE:SUNE) is a global renewable energy development company", {font:font, size:20, height:5});
-  var textGeometry2 = new THREE.TextGeometry("based in Maryland Heights, MO that develops and operates solar power plants.", {font:font, size:20, height:5});
-  textGeometry.translate(-450,100,400);
-  textGeometry2.translate(-450,70,400);
-  var textMesh = new THREE.Mesh(textGeometry, new THREE.MeshBasicMaterial({color:0xff8000}));
-  var textMesh2 = new THREE.Mesh(textGeometry2, new THREE.MeshBasicMaterial({color:0xff8000}));
-  textMesh.rotateY(-1*Math.PI/2);
-  textMesh2.rotateY(-1*Math.PI/2);
-  scene.add(textMesh);
-  scene.add(textMesh2);
-  console.log("hi");
-} );
-
-// Rendering
-var renderer = new THREE.WebGLRenderer({alpha:true});
-renderer.setClearColor( 0xffffff, 0);
-
-renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.appendChild(renderer.domElement);
-
-// Camera and controls
-var camera = new THREE.PerspectiveCamera(75,window.innerWidth/window.innerHeight, 0.1, 1000);
-camera.position.set(300,0,300);
-
-cameraParent = new THREE.Object3D();
-cameraParent.position.set(0,0,0);
-//cameraParent.rotation.x = 90 * Math.PI / 180
-//cameraParent.position.y = 100;
-scene.add( cameraParent );
-
-var splineCamera = new THREE.PerspectiveCamera( 84, window.innerWidth / window.innerHeight, 0.01, 1000 );
-//splineCamera.rotation.x = 90 * Math.PI / 180
-//splineCamera.position.set(0,0,0);
-cameraParent.add(splineCamera);
-
-
-// Lighting
-scene.add( new THREE.AmbientLight( 0x222222 ) );
-var light = new THREE.DirectionalLight( 0xffffff );
-light.position.set( 0, 1, 0 );
-//light.position.copy( splineCamera.position );
-scene.add( light );
-
-var controls = new THREE.OrbitControls(camera, renderer.domElement);
-controls.autoRotate = false;
-controls.enableZoom = true;
-
-// For render
+// For rendering
 var scale = 1;
 var binormal = new THREE.Vector3();
 var normal = new THREE.Vector3();
-
-// Remove later
-var cameraEye = new THREE.Mesh( new THREE.SphereGeometry( 5 ), new THREE.MeshBasicMaterial( { color: 0xdddddd } ) );
-cameraParent.add( cameraEye );
 
 var lookAhead = false;
 
@@ -207,7 +200,7 @@ function animate() {
 function render() {
     // Try Animate Camera Along Spline
     var time = Date.now();
-    var looptime = 20 * 1000;
+    var looptime = 35 * 1000; // Orig 20
     var t = ( time % looptime ) / looptime;
     var pos = tubeGeometry.parameters.path.getPointAt( t );
     pos.multiplyScalar( scale );
@@ -233,17 +226,19 @@ function render() {
     // Camera Orientation 2 - up orientation via normal
     //if (!lookAhead)
     //lookAt.copy( pos ).add( dir );
-
-    splineCamera.matrix.lookAt(splineCamera.position, lookAt, new THREE.Vector3(0,1,0));
+    //new THREE.Vector3(0,1,0
+    splineCamera.matrix.lookAt(splineCamera.position, lookAt, normal); // new THREE.Vector3(0,100,-20)
 
     //makeRotationY(270* Math.PI/180)
     //splineCamera.matrix.makeRotationY(270 * Math.PI/180);
     splineCamera.rotation.setFromRotationMatrix( splineCamera.matrix, splineCamera.rotation.order );
 
-    //cameraParent.rotation.y += ( 0 - cameraParent.rotation.y ) * 0.05;
+    ////parentCamera.rotation.y += ( 0 - parentCamera.rotation.y ) * 0.05;
     renderer.render(scene, splineCamera);
-    //renderer.render(scene, camera);
+    //renderer.render(scene, basicCamera);
 };
 
-//scene.add(new THREE.AxisHelper(200));
+loadCamerasAndControls();
+loadLight();
+loadCompanyDetails();
 animate();
