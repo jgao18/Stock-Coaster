@@ -4,7 +4,6 @@ var splineCamera;
 var controls;
 var scene = new THREE.Scene();
 
-
 var trackPoints = [];
 priceList = getPriceListFromFile("prices/prices_SUNE_weekly.txt");
 lastPointX = 0;
@@ -18,7 +17,7 @@ for (i = 0; i < priceList.length; i++) {
 
 // Coaster spline and settings
 var trackSpline =  new THREE.CatmullRomCurve3(trackPoints);
-var extrudeSettings = {extrudePath: trackSpline, steps: 90}; // amount, curveSegments
+var extrudeSettings = {extrudePath: trackSpline, steps: 2000}; // amount, curveSegments
 
 // Track base
 basePoints = [];
@@ -32,10 +31,6 @@ baseShape = new THREE.Shape([new THREE.Vector2(50.0, 0.0), new THREE.Vector2(50.
 var baseGeometry = new THREE.ExtrudeGeometry(baseShape, baseExtrudeSettings);
 baseGeometry.translate(0, 0, -10);
 addToScene(baseGeometry, "phong", {color: 0x0051c1});
-
-// Invisible tube to ride along
-var tubeGeometry = new THREE.TubeGeometry(trackSpline, 100, 1, 1, closed = false);
-addToScene(tubeGeometry, "phong", {color: 0x000000})
 
 // Green and red pipes
 pipeShape = new THREE.Shape();
@@ -89,7 +84,6 @@ while (baseCounter < baseVertices.length && pipeCounter < pipeVertices.length) {
      //linewidth: 30
   });
 
-  console.log(pipeVertex.x);
   var geometry = new THREE.Geometry();
   geometry.vertices.push(
     baseVertex, pipeVertex
@@ -101,13 +95,12 @@ while (baseCounter < baseVertices.length && pipeCounter < pipeVertices.length) {
 
   var line = new THREE.Line( geometry, material );
   var line2 = new THREE.Line( geometry2, material );
-  scene.add(line);
+  //scene.add(line);
   //  scene.add(line2)
 
   baseCounter += 10;
   pipeCounter += 40;
 }
-
 
 function addToScene(geometry, materialType, materialSettings, meshRotationAngle) {
   if (materialType == "phong")
@@ -196,46 +189,34 @@ function animate() {
   controls.update();
 }
 
+// var trackSpline =  new THREE.CatmullRomCurve3(trackPoints);
+// var extrudeSettings = {extrudePath: trackSpline, steps: 2000}; // amount, curveSegments
+
+
 // From: https://github.com/mrdoob/three.js/blob/master/examples/webgl_geometry_extrude_splines.html
 function render() {
     // Try Animate Camera Along Spline
-    var time = Date.now();
-    var looptime = 35 * 1000; // Orig 20
-    var t = ( time % looptime ) / looptime;
-    var pos = tubeGeometry.parameters.path.getPointAt( t );
-    pos.multiplyScalar( scale );
-    // interpolation
-    var segments = tubeGeometry.tangents.length;
-    var pickt = t * segments;
-    var pick = Math.floor( pickt );
-    var pickNext = ( pick + 1 ) % segments;
-    binormal.subVectors( tubeGeometry.binormals[ pickNext ], tubeGeometry.binormals[ pick ] );
-    binormal.multiplyScalar( pickt - pick ).add( tubeGeometry.binormals[ pick ] );
-    var dir = tubeGeometry.parameters.path.getTangentAt( t );
-    var offset = 15;
-    normal.copy( binormal ).cross( dir );
-    // We move on a offset on its binormal
-    pos.add( normal.clone().multiplyScalar( offset ) );
-    splineCamera.position.copy( pos );
-    cameraEye.position.copy( pos );
-    // Camera Orientation 1 - default look at
-    // splineCamera.lookAt( lookAt );
-    // Using arclength for stablization in look ahead.
-    var lookAt = tubeGeometry.parameters.path.getPointAt( ( t + 30 / tubeGeometry.parameters.path.getLength() ) % 1 ).multiplyScalar( scale );
+    time = Date.now();
+    looptime = 35 * 1000; // Orig 20
+    t = ( time % looptime ) / looptime;
 
-    // Camera Orientation 2 - up orientation via normal
-    //if (!lookAhead)
-    //lookAt.copy( pos ).add( dir );
-    //new THREE.Vector3(0,1,0
-    splineCamera.matrix.lookAt(splineCamera.position, lookAt, normal); // new THREE.Vector3(0,100,-20)
+    position = trackSpline.getPointAt(t)
+    splineCamera.position.copy(position);
+    splineCamera.rotation.y = 270 * Math.PI/180;
 
-    //makeRotationY(270* Math.PI/180)
-    //splineCamera.matrix.makeRotationY(270 * Math.PI/180);
-    splineCamera.rotation.setFromRotationMatrix( splineCamera.matrix, splineCamera.rotation.order );
 
-    ////parentCamera.rotation.y += ( 0 - parentCamera.rotation.y ) * 0.05;
+    direction = new THREE.Vector3(0,0,0);
+    for (i = 0; i < 5; i++) {
+      direction.add(trackSpline.getPointAt(t+.01*i));      // divide by t+1, t+ 2 average
+    }
+    direction.divideScalar(5);
+
+    tangent = trackSpline.getTangentAt(t);
+
+    direction.add(tangent)
+    splineCamera.lookAt(direction);
+
     renderer.render(scene, splineCamera);
-    renderer.render(scene, basicCamera);
 };
 
 loadCamerasAndControls();
