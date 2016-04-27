@@ -115,30 +115,48 @@ function loadCompanyDetails() {
     }
   }
   
-  startPoint
-
   // Extremes
   fontLoader = new THREE.FontLoader();
   fontLoader.load('three/optimer_regular.typeface.js', function ( font ) {
-    lastPrice = 0;
+    
+    startPrice = priceList[0];
+    startPriceGeometry = new THREE.TextGeometry("Start:             " + startPrice + "        "  + dateList[0], {font: font, size: 3, height: 1});
+    startPriceMesh = addToScene(startPriceGeometry, "basic", {color: 0xff8000}, -1*Math.PI/2);
+    startPriceMesh.translateX(16);
+    startPriceMesh.translateZ(40);
+    startPriceMesh.translateY(startPrice * 20.1);
+    
+    finishPrice = priceList[priceList.length - 1];
+    finishPriceGeometry = new THREE.TextGeometry("Finish:             " + finishPrice + "        "  + dateList[dateList.length - 1], {font: font, size: 3, height: 1});
+    finishPriceMesh = addToScene(finishPriceGeometry, "basic", {color: 0xff8000}, -1*Math.PI/2);
+    finishPriceMesh.translateX(16);
+    finishPriceMesh.translateZ(-1 * 35 * 111);
+    finishPriceMesh.translateY(finishPrice * 20.1);
+    
+    lastPrice = priceList[0];
     for (i = 0; i < extremes.length; i++) {
       counter = extremes[i][0];
       date = extremes[i][1];
       price = extremes[i][2];
       
-      
-      priceGeometry = new THREE.TextGeometry(price.toFixed(2), {font: font, size: 3, height: 1});
+      priceGeometry = new THREE.TextGeometry(price, {font: font, size: 3, height: 1});
   
       if (price > lastPrice)
 	color = 0x41c100
       else
 	color = 0xc10000
 	
-      priceMesh = addToScene(priceGeometry, "basic", {color:color}, -1*Math.PI/2);
+      priceMesh = addToScene(priceGeometry, "basic", {color: color}, -1*Math.PI/2);
       priceMesh.translateX(40.25);
       priceMesh.translateZ(-1 * 35 * counter);
       priceMesh.translateY(price*20.1);
       
+      dateGeometry = new THREE.TextGeometry(date, {font: font, size: 3, height: 1});
+      dateMesh = addToScene(dateGeometry, "basic", {color: 0x000000}, -1*Math.PI/2);
+      dateMesh.translateX(61);
+      dateMesh.translateZ(-1 * 35 * counter);
+      dateMesh.translateY(price*20.3);
+
       lastPrice = price;
     }
   });
@@ -183,7 +201,7 @@ function animate() {
 
 function render() {
     time = Date.now();
-    looptime = 95 * 1000; // speed
+    looptime = 95 * 1000; // speed 
     t = ( time % looptime ) / looptime;
 
     position = trackSpline.getPointAt(t)

@@ -22,7 +22,7 @@ function getDateAndPriceListFromFile(filepath)
 
           rawPrice = datePriceRegex[2];
           price = Math.round(rawPrice * 100) / 100;
-          priceList.push(price);
+          priceList.push(price.toFixed(2));
         }
       }
     }
