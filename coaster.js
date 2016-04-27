@@ -3,30 +3,50 @@ var basicCamera;
 var splineCamera;
 var controls;
 var scene = new THREE.Scene();
-var baseGeometry;
-var sceneCube = new THREE.Scene();
 
+var dateList;
+var priceList;
 var trackPoints = [];
-priceList = getPriceListFromFile("prices/prices_SUNE_weekly.txt");
-lastPointX = 0;
-xIncrement = 35;
+var trackSpline;
+var extrudeSettings;
 
-// Add straight line path to read company info
-for (i = 40; i > 1; i--) {
-  fartherPoint = new THREE.Vector3(-1 * i * xIncrement, priceList[0]*20, 45);
-  trackPoints.push(fartherPoint);
+renderer = new THREE.WebGLRenderer({alpha:true});
+renderer.setClearColor(0x87cefa, 1);
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+loadSpline();
+loadCoaster();
+loadCart();
+loadCompanyDetails();
+loadCamerasAndControls();
+loadLight();
+animate();
+
+function loadSpline() {
+  dateAndPriceList = getDateAndPriceListFromFile("prices/prices_SUNE_weekly.txt");
+  dateList = dateAndPriceList[0];
+  priceList = dateAndPriceList[1];
+  lastPointX = 0;
+  xIncrement = 35;
+
+  // Add straight line points to show company info
+  for (i = 40; i > 1; i--) {
+    fartherPoint = new THREE.Vector3(-1 * i * xIncrement, priceList[0]*20, 45);
+    trackPoints.push(fartherPoint);
+  }
+
+  // Add actual coaster points
+  for (i = 0; i < priceList.length; i++) {
+    pricePoint = new THREE.Vector3(lastPointX, priceList[i]*20, 45)
+    trackPoints.push(pricePoint);
+    lastPointX += xIncrement;
+  }
+
+  // Coaster spline and settings
+  trackSpline =  new THREE.CatmullRomCurve3(trackPoints);
+  extrudeSettings = {extrudePath: trackSpline, steps: 2000}; // amount, curveSegments
 }
-
-// Add actual coaster points
-for (i = 0; i < priceList.length; i++) {
-  pricePoint = new THREE.Vector3(lastPointX, priceList[i]*20, 45)
-  trackPoints.push(pricePoint);
-  lastPointX += xIncrement;
-}
-
-// Coaster spline and settings
-var trackSpline =  new THREE.CatmullRomCurve3(trackPoints);
-var extrudeSettings = {extrudePath: trackSpline, steps: 2000}; // amount, curveSegments
 
 function loadCoaster() {
   // Track base
@@ -43,7 +63,7 @@ function loadCoaster() {
 
   baseMaterial = new THREE.MeshLambertMaterial({color: 0xffffff});
   materialLoader = new THREE.TextureLoader();
-  materialLoader.load('/images/dirt.jpg', function ( texture ) {
+  materialLoader.load('images/dirt.jpg', function ( texture ) {
 		texture.wrapS = THREE.RepeatWrapping;
 		texture.wrapT = THREE.RepeatWrapping;
 		baseMaterial.map = texture;
@@ -66,11 +86,63 @@ function loadCoaster() {
 function loadCart() {
   colladaLoader = new THREE.ColladaLoader();
   cartObject = new THREE.Object3D();
-  colladaLoader.load("/model/cart.dae", function (collada) {
+  colladaLoader.load("model/cart.dae", function (collada) {
     cartObject.add(collada.scene)
   })
   cartObject.scale = new THREE.Vector3(50,0,0);
   scene.add(cartObject);
+}
+
+function loadCompanyDetails() {
+  // Company logo
+  logoLoader = new THREE.TextureLoader();
+  logoLoader.load('images/sune-logo.png', function ( logoTexture ) {
+    logoPlane = new THREE.PlaneGeometry(334, 97);
+    logoPlane.translate(0,430,500);
+    addToScene(logoPlane, "basic", {map: logoTexture, transparent: true}, -1*Math.PI/2)
+    }
+  );
+
+  // Finding extremes
+  extremes = [];
+  for (i = 1; i < priceList.length - 1; ++i) {
+    localExtreme = priceList[i];
+    if (priceList[i-1] < localExtreme && localExtreme > priceList[i+1]) {
+      extremes.push([i, dateList[i], localExtreme]);
+    }
+  }
+
+  console.log(extremes);
+
+  fontLoader = new THREE.FontLoader();
+  fontLoader.load('three/optimer_regular.typeface.js', function ( font ) {
+    // Company description
+    textGeometry = new THREE.TextGeometry("SunEdison (NYSE:SUNE) is a global renewable energy development company", {font: font, size: 20, height: 5});
+    textGeometry2 = new THREE.TextGeometry("based in Maryland Heights, MO that develops and operates solar power plants", {font: font, size: 20, height: 5});
+    textGeometry.translate(-450,350,500);
+    textGeometry2.translate(-450,320,500);
+    addToScene(textGeometry, "basic", {color:0xff8000}, -1*Math.PI/2);
+    addToScene(textGeometry2, "basic", {color:0xff8000}, -1*Math.PI/2);
+
+    // Extremes
+    for (i = 0; i < extremes.length; i++) {
+      counter = extrems[i][0];
+      date = extremes[i][1];
+      price = extremes[i][2];
+
+      console.log(price);
+      dpGeometry = new THREE.TextGeometry(price, {font: font, size: 50, height: 5});
+      dpGeometry.translate(-1 * 35 * counter, price*20 ,45)
+      addToScene(dpGeometry, "basic", {color:0xff8000}, -1*Math.PI/2);
+
+      /*/ Add actual coaster points
+      for (i = 0; i < priceList.length; i++) {
+        pricePoint = new THREE.Vector3(lastPointX, priceList[i]*20, 45)
+        trackPoints.push(pricePoint);
+        lastPointX += xIncrement;
+      }*/
+    }
+  });
 }
 
 // Legs from base to pipes
@@ -133,12 +205,6 @@ while (baseCounter < baseVertices.length && pipeCounter < pipeVertices.length) {
 }*/
 
 function loadCamerasAndControls() {
-  // Rendering
-  renderer = new THREE.WebGLRenderer({alpha:true});
-  renderer.setClearColor( 0x87CEFA, 1);
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  document.body.appendChild(renderer.domElement);
-
   // Cameras
   basicCamera = new THREE.PerspectiveCamera(120,window.innerWidth/window.innerHeight, 0.1, 1000);
   basicCamera.position.set(2000,300,800);
@@ -157,41 +223,6 @@ function loadLight() {
   directionalLight.position.set( 0, 2, 0 );
   scene.add(directionalLight );
   //scene.add(new THREE.HemisphereLight(0xffffbb, 0xffffff, 1))
-}
-
-function loadCompanyDetails() {
-  // Company logo
-  logoLoader = new THREE.TextureLoader();
-  logoLoader.load('images/sune-logo.png', function ( logoTexture ) {
-    logoPlane = new THREE.PlaneGeometry(334, 97);
-    logoPlane.translate(0,430,500);
-    addToScene(logoPlane, "basic", {map: logoTexture, transparent: true}, -1*Math.PI/2)
-    }
-  );
-
-  // Company description
-  fontLoader = new THREE.FontLoader();
-  fontLoader.load('three/optimer_regular.typeface.js', function ( font ) {
-    textGeometry = new THREE.TextGeometry("SunEdison (NYSE:SUNE) is a global renewable energy development company", {font: font, size: 20, height: 5});
-    textGeometry2 = new THREE.TextGeometry("based in Maryland Heights, MO that develops and operates solar power plants", {font: font, size: 20, height: 5});
-    textGeometry.translate(-450,350,500);
-    textGeometry2.translate(-450,320,500);
-    addToScene(textGeometry, "basic", {color:0xff8000}, -1*Math.PI/2);
-    addToScene(textGeometry2, "basic", {color:0xff8000}, -1*Math.PI/2);
-  } );
-}
-
-function addToScene(geometry, materialType, materialSettings, meshRotationAngle) {
-  if (materialType == "phong")
-    material = new THREE.MeshPhongMaterial(materialSettings);
-  else
-    material = new THREE.MeshBasicMaterial(materialSettings);
-
-  mesh = new THREE.Mesh(geometry, material);
-  meshRotationAngle = meshRotationAngle || 0;
-  if (meshRotationAngle != 0)
-    mesh.rotateY(meshRotationAngle);
-  scene.add(mesh);
 }
 
 function animate() {
@@ -232,9 +263,15 @@ function render() {
     //renderer.render(scene, basicCamera);
 };
 
-loadCoaster();
-loadCart();
-loadCamerasAndControls();
-loadLight();
-loadCompanyDetails();
-animate();
+function addToScene(geometry, materialType, materialSettings, meshRotationAngle) {
+  if (materialType == "phong")
+    material = new THREE.MeshPhongMaterial(materialSettings);
+  else
+    material = new THREE.MeshBasicMaterial(materialSettings);
+
+  mesh = new THREE.Mesh(geometry, material);
+  meshRotationAngle = meshRotationAngle || 0;
+  if (meshRotationAngle != 0)
+    mesh.rotateY(meshRotationAngle);
+  scene.add(mesh);
+}
