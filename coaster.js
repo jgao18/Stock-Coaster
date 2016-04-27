@@ -110,99 +110,50 @@ function loadCompanyDetails() {
     if (priceList[i-1] < localExtreme && localExtreme > priceList[i+1]) {
       extremes.push([i, dateList[i], localExtreme]);
     }
+    if (priceList[i-1] > localExtreme && localExtreme < priceList[i+1]) {
+      extremes.push([i, dateList[i], localExtreme]);
+    }
   }
+  
+  startPoint
 
-  console.log(extremes);
-
+  // Extremes
   fontLoader = new THREE.FontLoader();
   fontLoader.load('three/optimer_regular.typeface.js', function ( font ) {
-    // Company description
+    lastPrice = 0;
+    for (i = 0; i < extremes.length; i++) {
+      counter = extremes[i][0];
+      date = extremes[i][1];
+      price = extremes[i][2];
+      
+      
+      priceGeometry = new THREE.TextGeometry(price.toFixed(2), {font: font, size: 3, height: 1});
+  
+      if (price > lastPrice)
+	color = 0x41c100
+      else
+	color = 0xc10000
+	
+      priceMesh = addToScene(priceGeometry, "basic", {color:color}, -1*Math.PI/2);
+      priceMesh.translateX(40.25);
+      priceMesh.translateZ(-1 * 35 * counter);
+      priceMesh.translateY(price*20.1);
+      
+      lastPrice = price;
+    }
+  });
+
+  // Company description
+  fontLoader = new THREE.FontLoader();
+  fontLoader.load('three/optimer_regular.typeface.js', function ( font ) {
     textGeometry = new THREE.TextGeometry("SunEdison (NYSE:SUNE) is a global renewable energy development company", {font: font, size: 20, height: 5});
     textGeometry2 = new THREE.TextGeometry("based in Maryland Heights, MO that develops and operates solar power plants", {font: font, size: 20, height: 5});
     textGeometry.translate(-450,350,500);
     textGeometry2.translate(-450,320,500);
     addToScene(textGeometry, "basic", {color:0xff8000}, -1*Math.PI/2);
     addToScene(textGeometry2, "basic", {color:0xff8000}, -1*Math.PI/2);
-
-    // Extremes
-    for (i = 0; i < extremes.length; i++) {
-      counter = extrems[i][0];
-      date = extremes[i][1];
-      price = extremes[i][2];
-
-      console.log(price);
-      dpGeometry = new THREE.TextGeometry(price, {font: font, size: 50, height: 5});
-      dpGeometry.translate(-1 * 35 * counter, price*20 ,45)
-      addToScene(dpGeometry, "basic", {color:0xff8000}, -1*Math.PI/2);
-
-      /*/ Add actual coaster points
-      for (i = 0; i < priceList.length; i++) {
-        pricePoint = new THREE.Vector3(lastPointX, priceList[i]*20, 45)
-        trackPoints.push(pricePoint);
-        lastPointX += xIncrement;
-      }*/
-    }
   });
 }
-
-// Legs from base to pipes
-/*var baseCounter = 10;
-var pipeCounter = 10;
-//var baseVertices = baseGeometry.vertices;
-//var pipeVertices = pipeGreenGeometry.vertices;
-//var pipeVertices2 = pipeRedGeometry.vertices;
-
-console.log(baseVertices.length);
-console.log(pipeVertices.length);
-
-console.log(baseVertices[0]);
-console.log(pipeVertices[0]);
-
-while (baseCounter < baseVertices.length && pipeCounter < pipeVertices.length) {
-  //console.log(baseCounter);
-  //console.log(pipeCounter);
-
-  baseVertex = baseVertices[baseCounter];
-  pipeVertex = pipeVertices[pipeCounter];
-  pipeVertex2 = pipeVertices2[pipeCounter];
-
-  legHeight = pipeVertex.y - baseVertex.y
-  //console.log(legHeight);
-
-  legGeometry = new THREE.CylinderGeometry(2,2,legHeight,32);
-  legGeometry.translate(baseVertex.x,0,0);
-  legGeometry.lookAt(pipeVertex);
-
-  //legGeometry.translate(baseVertex.x, baseVertex.y, baseVertex.z);
-
-  legMaterial = new THREE.MeshPhongMaterial({color: 0x0051c1});
-  legMesh = new THREE.Mesh(legGeometry, legMaterial);
-  //legMesh.position = baseVertex;
-
-  //scene.add(legMesh);
-
-  var material = new THREE.LineBasicMaterial({
-	   color: 0xb000ff,
-     //linewidth: 30
-  });
-
-  var geometry = new THREE.Geometry();
-  geometry.vertices.push(
-    baseVertex, pipeVertex
-  );
-  var geometry2 = new THREE.Geometry();
-  geometry.vertices.push(
-    baseVertex, pipeVertex2
-  );
-
-  var line = new THREE.Line( geometry, material );
-  var line2 = new THREE.Line( geometry2, material );
-  //scene.add(line);
-  //  scene.add(line2)
-
-  baseCounter += 10;
-  pipeCounter += 40;
-}*/
 
 function loadCamerasAndControls() {
   // Cameras
@@ -222,7 +173,6 @@ function loadLight() {
   directionalLight = new THREE.DirectionalLight(0xffffff);
   directionalLight.position.set( 0, 2, 0 );
   scene.add(directionalLight );
-  //scene.add(new THREE.HemisphereLight(0xffffbb, 0xffffff, 1))
 }
 
 function animate() {
@@ -246,13 +196,13 @@ function render() {
     splineCamera.rotation.y = 270 * Math.PI/180;
 
     direction = new THREE.Vector3(0,0,0);
-    for (i = 0; i < 3; i++) {
+    for (i = 0; i < 2; i++) {
       aheadPoint = t + (.01*i);
       if (aheadPoint > 1 )  // prevent out of bounds
         aheadPoint = 1;
-      direction.add(trackSpline.getPointAt(aheadPoint));      // divide by t+1, t+ 2 average
+      direction.add(trackSpline.getPointAt(aheadPoint));
     }
-    direction.divideScalar(3);
+    direction.divideScalar(2);
     tangent = trackSpline.getTangentAt(t);
     direction.add(tangent)
     splineCamera.lookAt(direction);
@@ -273,5 +223,7 @@ function addToScene(geometry, materialType, materialSettings, meshRotationAngle)
   meshRotationAngle = meshRotationAngle || 0;
   if (meshRotationAngle != 0)
     mesh.rotateY(meshRotationAngle);
+  
   scene.add(mesh);
+  return mesh;
 }
