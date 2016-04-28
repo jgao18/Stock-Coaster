@@ -27,8 +27,8 @@ function getDateAndPriceListFromFile(filepath)
       }
     }
   }
+
   file.send(null);
   dateAndPriceList.push(dateList, priceList);
   return dateAndPriceList;
-
 }
