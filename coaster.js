@@ -2,11 +2,15 @@ var renderer;
 var basicCamera;
 var splineCamera;
 var controls;
-var scene = new THREE.Scene();
+var stats;
+var scene;
 
+var looptime;
+var chaChingSound;
 var dateList;
 var priceList;
-var trackPoints = [];
+var pricePositionList;
+var trackPoints;
 var trackSpline;
 var extrudeSettings;
 
@@ -15,23 +19,33 @@ var companies = {};
 companies["SUNE"] = ["SunEdison (NYSE:SUNE) is a global renewable energy development company", "based in Maryland Heights, MO that develops and operates solar power plants", 0xff8000 ];
 companies["WPX"] = ["WPX Energy (NYSE:WPX) is a petroleum and natrual gas exploration company", "that was founded in 2011 and headquartered in the Williams Center of Tulsa, OK", 0x00b4c3 ];
 
-renderer = new THREE.WebGLRenderer({alpha:true});
+renderer = new THREE.WebGLRenderer({antialias: true, alpha: true});
 renderer.setClearColor(0x87cefa, 1);
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
+
+THREEx.WindowResize(renderer, splineCamera);
 
 setCompany();
 
 function setCompany() {
   select = document.getElementById("companies");
-  company= select.options[select.selectedIndex].value;
-
+  //company = select.options[select.selectedIndex].value;
+  company = "SUNE";
+  
+  scene = new THREE.Scene();
+  
+  trackPoints = [];
+  pricePositionList = []
+      
   loadSpline(company);
   loadTrack();
   loadCart();
   loadCompanyDetails(company);
   loadCamerasAndControls();
   loadLight();
+  loadSound();
+  loadFPS();
   animate();
 }
 
@@ -57,7 +71,7 @@ function loadSpline(company) {
 
   // Coaster spline and settings
   trackSpline =  new THREE.CatmullRomCurve3(trackPoints);
-  extrudeSettings = {extrudePath: trackSpline, steps: 2000}; // amount, curveSegments
+  extrudeSettings = {extrudePath: trackSpline, steps: 200}; // amount, curveSegments
 }
 
 function loadTrack() {
@@ -76,11 +90,11 @@ function loadTrack() {
   baseMaterial = new THREE.MeshLambertMaterial({color: 0xffffff});
   materialLoader = new THREE.TextureLoader();
   materialLoader.load('images/dirt.jpg', function ( texture ) {
-		texture.wrapS = THREE.RepeatWrapping;
-		texture.wrapT = THREE.RepeatWrapping;
-		baseMaterial.map = texture;
-		baseMaterial.needsUpdate = true;
-	});
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    baseMaterial.map = texture;
+    baseMaterial.needsUpdate = true;
+  });
   scene.add(new THREE.Mesh(baseGeometry, baseMaterial));
 
   // Green and red pipes
@@ -169,6 +183,7 @@ function loadCompanyDetails(company) {
       priceMesh.translateX(40.25);
       priceMesh.translateZ(-1*35*counter);
       priceMesh.translateY(price*20.1);
+      pricePositionList.push(priceMesh.position.x);
 
       dateGeometry = new THREE.TextGeometry(date, {font: font, size: 3, height: 1});
       dateMesh = addToScene(dateGeometry, "basic", {color: 0x000000}, -1*Math.PI/2);
@@ -185,59 +200,88 @@ function loadCamerasAndControls() {
   basicCamera = new THREE.PerspectiveCamera(120,window.innerWidth/window.innerHeight, 0.1, 1000);
   basicCamera.position.set(2000,300,800);
   scene.add(basicCamera)
+  controls = new THREE.OrbitControls(basicCamera, renderer.domElement);
+
 
   splineCamera = new THREE.PerspectiveCamera(84, window.innerWidth / window.innerHeight, 0.01, 1000);
-
-  controls = new THREE.OrbitControls(basicCamera, renderer.domElement);
-  controls.autoRotate = false;
-  controls.enableZoom = true;
+  //controls = new THREE.DeviceOrientationControls(splineCamera);
 }
 
 function loadLight() {
   scene.add(new THREE.AmbientLight(0x222222));
   directionalLight = new THREE.DirectionalLight(0xffffff);
   directionalLight.position.set(0, 2, 0);
-  scene.add(directionalLight );
+  scene.add(directionalLight);
 }
 
+function loadSound() {
+  audioListener = new THREE.AudioListener();
+  splineCamera.add(audioListener);
+  music = new THREE.Audio(audioListener);
+  var ambientSound = new THREE.Audio(audioListener);
+  ambientSound.load('images/music.mp3');
+  ambientSound.autoplay = true;
+  ambientSound.setLoop(true);
+  ambientSound.setVolume(0.3);
+}
+
+function loadFPS() {
+  stats = new Stats();
+  stats.showPanel(0);
+  document.body.appendChild(stats.dom);
+}
+
+function keydown( event ) {
+    switch ( event.keyCode ) {
+
+    case 87: // W
+      looptime = 1000 * 1000;
+      break;
+    }
+}
+window.addEventListener('keydown', keydown);
+
+
 function animate() {
+  stats.begin();
   requestAnimationFrame(animate);
   render();
   controls.update();
+  stats.end();
 }
 
 function render() {
-    time = Date.now();
-    looptime = 95*1000; // higher factor => slower speed
-    t = ( time % looptime ) / looptime;
+  time = Date.now();
+  looptime = 95*1000; // higher factor => slower speed
+  t = ( time % looptime ) / looptime;
 
-    position = trackSpline.getPointAt(t)
+  position = trackSpline.getPointAt(t)
 
-    cartObject.position.copy(position);
-    cartObject.position.x -= 1.1;
+  cartObject.position.copy(position);
+  cartObject.position.x -= 1.1;
 
-    splineCamera.position.copy(position);
-    splineCamera.position.y += 2;
-    splineCamera.rotation.y = 270*Math.PI/180;
+  splineCamera.position.copy(position);
+  splineCamera.position.y += 2;
+  splineCamera.rotation.y = 270*Math.PI/180;
 
-    // Taking the average of the next few points to determine lookAt direction
-    aheadPoints = 2;
-    direction = new THREE.Vector3(0, 0, 0);
-    for (i = 0; i < aheadPoints; i++) {
-      aheadPoint = t + (.01*i);
-      if (aheadPoint > 1 )  // prevent out of bounds
-        aheadPoint = 1;
-      direction.add(trackSpline.getPointAt(aheadPoint));
-    }
-    direction.divideScalar(aheadPoints);
-    tangent = trackSpline.getTangentAt(t);
-    direction.add(tangent)
-    splineCamera.lookAt(direction);
-    cartObject.lookAt(direction);
-    cartObject.rotateOnAxis(new THREE.Vector3(0, 1, 0), -90*Math.PI/180)
+  // Taking the average of the next few points to determine lookAt direction
+  aheadPoints = 2;
+  direction = new THREE.Vector3(0, 0, 0);
+  for (i = 0; i < aheadPoints; i++) {
+    aheadPoint = t + (.01*i);
+    if (aheadPoint > 1 )  // prevent out of bounds
+      aheadPoint = 1;
+    direction.add(trackSpline.getPointAt(aheadPoint));
+  }
+  direction.divideScalar(aheadPoints);
+  tangent = trackSpline.getTangentAt(t);
+  direction.add(tangent)
+  splineCamera.lookAt(direction);
+  cartObject.lookAt(direction);
+  cartObject.rotateOnAxis(new THREE.Vector3(0, 1, 0), -90*Math.PI/180)
 
-    renderer.render(scene, splineCamera);
-    //renderer.render(scene, basicCamera);
+  renderer.render(scene, splineCamera);
+  //renderer.render(scene, basicCamera);
 };
 
 function addToScene(geometry, materialType, materialSettings, meshRotationAngle) {
